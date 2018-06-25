@@ -1,3 +1,4 @@
+#!/usr/bin/python
 import MySQLdb 
 import csv
 import fnmatch
