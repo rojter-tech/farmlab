@@ -174,6 +174,7 @@ Private Sub TransferControlRange(ByVal CompInt As Integer)
         CompSheet.Cells(1, 1).Value = "Sample"
         CompSheet.Cells(1, 2).Value = "TAC"
         CompSheet.Cells(1, 3).Value = "Conc"
+        CompSheet.Cells(1, 9).Value = "RatioFlag"
         
         Set HeaderRange = NeatSheet.Range(NeatSheet.Cells(headerneat, 1), NeatSheet.Cells(headerneat, Columns.Count).End(xlToLeft))
         Set ControlRange = NeatSheet.Range(NeatSheet.Cells(headerneat, 3), NeatSheet.Cells(headerneat + injectionsneat, 3))
@@ -215,10 +216,9 @@ Private Sub TransferControlRange(ByVal CompInt As Integer)
                     If NeatSheet.Cells(headerneat + i, CInt(Cell.Column)).Value = "Standard" Or NeatSheet.Cells(headerneat + i, CInt(Cell.Column)).Value = "QC" Then
                         NeatArea = NeatSheet.Cells(headerneat + i, AreaRow).Value
                         SpikeArea = SpikeSheet.Cells(headerspike + i, AreaRow).Value
-                        Sheets(compName).Cells(j + 1, 1).Value = NeatSheet.Cells(headerneat + i, IDRow).Value
-                        Sheets(compName).Cells(j + 1, 2).Value = NeatArea / (SpikeArea - NeatArea)
-                        Sheets(compName).Cells(1, 9).Value = "RatioFlag"
-                        Sheets(compName).Cells(j + 1, 9).Value = NeatSheet.Cells(headerneat + i, RFRow).Value
+                        CompSheet.Cells(j + 1, 1).Value = NeatSheet.Cells(headerneat + i, IDRow).Value
+                        CompSheet.Cells(j + 1, 2).Value = NeatArea / (SpikeArea - NeatArea)
+                        CompSheet.Cells(j + 1, 9).Value = NeatSheet.Cells(headerneat + i, RFRow).Value
                         j = j + 1
                     End If
                     If NeatSheet.Cells(headerneat + i, CInt(Cell.Column)).Value = "Standard" Then
@@ -226,23 +226,34 @@ Private Sub TransferControlRange(ByVal CompInt As Integer)
                     kal = kal + 1
                     End If
                 Next
+                j = 1
                 CalExecutor kal, compName
+                For i = 1 To injectionsneat
+                    If NeatSheet.Cells(headerneat + i, CInt(Cell.Column)).Value = "Standard" Or NeatSheet.Cells(headerneat + i, CInt(Cell.Column)).Value = "QC" Then
+                        CompSheet.Cells(j + 1, 3).Value = (CompSheet.Cells(j + 1, 2).Value - CompSheet.Range("K2")) / (CompSheet.Range("J2"))
+                        j = j + 1
+                    End If
+                Next
             End If
         Next
     Next
 End Sub
 Private Sub CalExecutor(ByVal CompInt As Integer, ByVal compName As String)
-    Dim MetaDataSh As Worksheet, CompSheet As Worksheet, Chrt As Chart
-    Set MetaDataSh = Sheets("MetaData")
+    Dim MetaDataSh As Worksheet, CompSheet As Worksheet, Chrt As Chart, yL As Range, xL As Range
     Set CompSheet = ThisWorkbook.Sheets(compName)
+    Set MetaDataSh = ThisWorkbook.Sheets("MetaData")
     Set Chrt = CompSheet.Shapes.AddChart2.Chart
-    With Chrt
-    Do While .SeriesCollection.Count > 0
-        .SeriesCollection(1).Delete
-    Loop
-    End With
+    Set yL = CompSheet.Range("$B$2:$B$7")
+    Set xL = MetaDataSh.Range("$F$2:$F$7")
+    SlopeValue = Application.WorksheetFunction.Slope(yL, xL)
+    InterceptValue = Application.WorksheetFunction.Intercept(yL, xL)
     
     With Chrt
+        .Parent.Left = CompSheet.Range("K4").Left
+        .Parent.Top = CompSheet.Range("K4").Top
+        Do While .SeriesCollection.Count > 0
+            .SeriesCollection(1).Delete
+        Loop
         .ChartType = xlXYScatter
         .SeriesCollection.NewSeries
         With .SeriesCollection(1)
@@ -266,6 +277,11 @@ Private Sub CalExecutor(ByVal CompInt As Integer, ByVal compName As String)
         .Axes(xlValue).HasMinorGridlines = True
         .HasLegend = False
     End With
+    CompSheet.Range("J1").Value = "Slope"
+    CompSheet.Range("J2").Value = SlopeValue
+    CompSheet.Range("K1").Value = "Intercept"
+    CompSheet.Range("K2").Value = InterceptValue
+    
 End Sub
 Private Sub Worksheet_Change(ByVal Target As Range)
     If Target.Address <> "$A$1" Then Exit Sub
