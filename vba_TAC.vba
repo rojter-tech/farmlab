@@ -249,13 +249,17 @@ Private Sub CalExecutor(ByVal CompInt As Integer, ByVal compName As String)
     InterceptValue = Application.WorksheetFunction.Intercept(yL, xL)
     
     With Chrt
-        .Parent.Left = CompSheet.Range("K4").Left
-        .Parent.Top = CompSheet.Range("K4").Top
         Do While .SeriesCollection.Count > 0
             .SeriesCollection(1).Delete
         Loop
         .ChartType = xlXYScatter
         .SeriesCollection.NewSeries
+        With .Parent
+            .Left = CompSheet.Range("J1").Left
+            .Top = CompSheet.Range("J1").Top
+            .Height = CompSheet.Range("J1:J20").Height
+            .Width = CompSheet.Range("J1:N1").Width
+        End With
         With .SeriesCollection(1)
             .Name = "Calibrationcurve: " & compName
             .Values = "='" & compName & "'!$B$2:$B$7"
