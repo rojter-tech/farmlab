@@ -288,8 +288,8 @@ Private Sub CalExecutor(ByVal CompInt As Integer, ByVal compName As String, kal 
     Set xL = MetaDataSh.Range("$F$2:$F$7")
     SlopeValue = Application.WorksheetFunction.Slope(yL, xL)
     InterceptValue = Application.WorksheetFunction.Intercept(yL, xL)
-    Dim test As String
-    test = CStr(kal + 1)
+    Dim LastCal As String
+    LastCal = CStr(kal + 1)
     With Chrt
         Do While .SeriesCollection.Count > 0
             .SeriesCollection(1).Delete
@@ -304,8 +304,8 @@ Private Sub CalExecutor(ByVal CompInt As Integer, ByVal compName As String, kal 
         End With
         With .SeriesCollection(1)
             .Name = "Calibrationcurve: " & compName
-            .Values = "='" & compName & "'!$B$2:$B$" & test
-            .XValues = "='MetaData'!$F$2:$F$7"
+            .Values = "='" & compName & "'!$B$2:$B$" & LastCal
+            .XValues = "='MetaData'!$F$2:$F$" & LastCal
             .Trendlines.Add
             .Trendlines(1).DisplayEquation = True
             .Trendlines(1).DisplayRSquared = True
