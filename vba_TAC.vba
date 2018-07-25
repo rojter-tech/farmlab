@@ -3,10 +3,10 @@ Private Sub CommandButton1_Click()
     Dim neat As Integer, spike As Integer, c As Integer
     Dim StartRowNeat As Integer, StartColumnNeat As Integer, CompCtrl As Integer, CompColumn As Integer, NeatRange As Range, SpikeRange As Range
     Dim StartRowSpike As Integer, StartColumnSpike As Integer, SpikeSheet As Worksheet, NeatSheet As Worksheet
-    Set NeatSheet = Sheets("Neat")
-    Set SpikeSheet = Sheets("Spike")
-    Set NeatRange = ThisWorkbook.Sheets("Neat").Range("A1:Z100")
-    Set SpikeRange = ThisWorkbook.Sheets("Spike").Range("A1:Z100")
+    Set NeatSheet = ThisWorkbook.Sheets("Neat")
+    Set SpikeSheet = ThisWorkbook.Sheets("Spike")
+    Set NeatRange = ThisWorkbook.Sheets("Neat").Range("A1:AZ500")
+    Set SpikeRange = ThisWorkbook.Sheets("Spike").Range("A1:AZ500")
     'Letar efter position för inklistring av CompleteSummary i Neat
     For Each Cell In NeatRange
         If Cell.Value Like "*Compound*" Then
@@ -50,7 +50,7 @@ Private Function LoopRowsStoreNeat(ByVal StartRow As Integer, ByVal StartColumn 
     Dim yourString, subString, replacementString, newString As String
 
     'Definerar området med substansinformation
-    Set NeatSheet = Sheets("Neat")
+    Set NeatSheet = ThisWorkbook.Sheets("Neat")
     Set CompRange = NeatSheet.Range(NeatSheet.Cells(StartRow, StartColumn), NeatSheet.Cells(Rows.Count, StartColumn).End(xlUp))
     
     'Kollar om bladet MetaData existerar.
@@ -72,7 +72,7 @@ Private Function LoopRowsStoreNeat(ByVal StartRow As Integer, ByVal StartColumn 
     End If
     
     'Fyll x första cellerna med Compound strängar i MetaData
-    Set MetaDataSh = Sheets("MetaData")
+    Set MetaDataSh = ThisWorkbook.Sheets("MetaData")
     j = 1
     MetaDataSh.Cells(1, 1).Value = "Compound"
     MetaDataSh.Cells(1, 2).Value = "Header Row Neat"
@@ -106,11 +106,11 @@ Private Sub LoopRowsStoreSpike(ByVal StartRow As Integer, ByVal StartColumn As I
     Dim strSheetName As String, CtrlWSh As Worksheet, bln As Boolean
     
     'Definerar området med substansinformation
-    Set SpikeSheat = Sheets("Spike")
+    Set SpikeSheat = ThisWorkbook.Sheets("Spike")
     Set CompRange = SpikeSheat.Range(SpikeSheat.Cells(StartRow, StartColumn), SpikeSheat.Cells(Rows.Count, StartColumn).End(xlUp))
     
     'Fyller x första cellerna med Compound-strängar i MetaData
-    Set MetaDataSh = Sheets("MetaData")
+    Set MetaDataSh = ThisWorkbook.Sheets("MetaData")
     j = 1
     MetaDataSh.Cells(1, 3).Value = "Header Row Spike"
     For Each Cell In CompRange
@@ -125,14 +125,14 @@ Private Sub CreateCompoundSheets()
 'Skapar flikar från metadata
     Dim CompRange As Range, Cell As Range, MetaDataSh As Worksheet, SheetName As String
     Dim strSheetName As String, CtrlWSh As Worksheet, bln As Boolean
-    Set MetaDataSh = Sheets("MetaData")
+    Set MetaDataSh = ThisWorkbook.Sheets("MetaData")
     Set CompRange = MetaDataSh.Range(MetaDataSh.Cells(2, 1), MetaDataSh.Cells(Rows.Count, "A").End(xlUp))
     
     For Each Cell In CompRange
         'Bekräfta att bladen från MetaData inte redan existerar.
         strSheetName = Trim(Cell.Value)
         On Error Resume Next
-        Set CtrlWSh = ActiveWorkbook.Worksheets(strSheetName)
+        Set CtrlWSh = ThisWorkbook.Worksheets(strSheetName)
         On Error Resume Next
         If Not CtrlWSh Is Nothing Then
             bln = True
@@ -150,8 +150,8 @@ End Sub
 Private Function CheckNeatIndex(ByVal StartRow, ByVal StartColumn) As Integer
 'Kollar och lagrar indexdata för Neat
     Dim IndexRange As Range, InfoSheet As Worksheet, i As Integer, j As Integer, MetaDataSh As Worksheet
-    Set MetaDataSh = Sheets("MetaData")
-    Set InfoSheet = Sheets("Neat")
+    Set MetaDataSh = ThisWorkbook.Sheets("MetaData")
+    Set InfoSheet = ThisWorkbook.Sheets("Neat")
     Set IndexRange = InfoSheet.Range(InfoSheet.Cells(StartRow, StartColumn), InfoSheet.Cells(Rows.Count, StartColumn).End(xlUp))
     i = 1
     j = 1
@@ -169,8 +169,8 @@ End Function
 Private Function CheckSpikeIndex(ByVal StartRow, ByVal StartColumn) As Integer
 'Kollar och lagrar indexdata för Spike
     Dim IndexRange As Range, InfoSheet As Worksheet, i As Integer, j As Integer, MetaDataSh As Worksheet
-    Set MetaDataSh = Sheets("MetaData")
-    Set InfoSheet = Sheets("Spike")
+    Set MetaDataSh = ThisWorkbook.Sheets("MetaData")
+    Set InfoSheet = ThisWorkbook.Sheets("Spike")
     Set IndexRange = InfoSheet.Range(InfoSheet.Cells(StartRow, StartColumn), InfoSheet.Cells(Rows.Count, StartColumn).End(xlUp))
     i = 1
     j = 1
@@ -188,108 +188,170 @@ End Function
 Private Sub TransferControlRange(ByVal CompInt As Integer, ByVal StartRowNeat As Integer, ByVal StartColumnNeat As Integer, ByVal StartRowSpike As Integer, ByVal StartColumnSpike As Integer)
     Dim HeaderRangeNeat As Range, ControlRange As Range, NeatSheet As Worksheet, SpikeSheet As Worksheet, MetaDataSh As Worksheet, CompSheet As Worksheet
     Dim headerneat As Integer, headerspike As Integer, injectionsneat As Integer
-    Dim IDRow As Integer, StdConcRow As Integer, RTRow As Integer, PredRTRow As Integer, AreaRow As Integer, RFRow As Integer, TypeRow As Integer, AreaRowSpike As Integer
-    Dim NeatArea As Long, SpikeArea As Long
-    Dim j As Integer, k As Integer, m As Integer, kal As Integer, compName As String
-    Set MetaDataSh = Sheets("MetaData")
-    Set NeatSheet = Sheets("Neat")
-    Set SpikeSheet = Sheets("Spike")
+    Dim IDColumn As Integer, StdConcColumn As Integer, RTColumn As Integer, PredRTColumn As Integer, AreaColumnNeat As Integer, RFColumn As Integer, TypeColumn As Integer, AreaColumnSpike As Integer
+    Dim NeatArea As Long, SpikeArea As Long, StdConcValue As Long, AvgRTValue As Double
+    Dim j As Integer, k As Integer, m As Integer, compSheetPos As Integer, LastContCell As Integer, kal As Integer, compName As String, ConcValue As Long, ColIndex As Integer
+    Set MetaDataSh = ThisWorkbook.Sheets("MetaData")
+    Set NeatSheet = ThisWorkbook.Sheets("Neat")
+    Set SpikeSheet = ThisWorkbook.Sheets("Spike")
     injectionsneat = MetaDataSh.Cells(2, 4)
     MetaDataSh.Cells(1, 6).Value = "Calibration Points"
     m = 1
-    
+    compSheetPos = 2
     For k = 1 To CompInt
         headerneat = MetaDataSh.Cells(k + 1, 2)
         headerspike = MetaDataSh.Cells(k + 1, 3)
         compName = CStr(MetaDataSh.Cells(k + 1, 1))
         Set CompSheet = ThisWorkbook.Sheets(compName)
-        CompSheet.Cells(1, 1).Value = "Sample"
-        CompSheet.Cells(1, 2).Value = "TAC"
-        CompSheet.Cells(1, 3).Value = "Conc"
-        CompSheet.Cells(1, 9).Value = "RatioFlag"
+        CompSheet.Cells(1, 2).Value = compName
+        CompSheet.Cells(1, 2).Font.Bold = True
+        CompSheet.Cells(1, 2).Font.Size = 15
+        CompSheet.Cells(compSheetPos, 1).Value = "Sample" & Chr(10) & ""
+        CompSheet.Cells(compSheetPos, 2).Value = "TAC" & Chr(10) & "Ratio"
+        CompSheet.Cells(compSheetPos, 3).Value = "Conc" & Chr(10) & "ng/mL"
+        CompSheet.Cells(compSheetPos, 4).Value = "Range" & Chr(10) & "(±20%)"
+        CompSheet.Cells(compSheetPos, 5).Value = "Conc" & Chr(10) & "Criteria"
+        CompSheet.Cells(compSheetPos, 6).Value = "RT" & Chr(10) & "Criteria"
+        CompSheet.Cells(compSheetPos, 7).Value = "Injection" & Chr(10) & "Recovery"
+        CompSheet.Cells(compSheetPos, 8).Value = "Injection" & Chr(10) & "Criteria"
+        CompSheet.Cells(compSheetPos, 9).Value = "Ion Ratio" & Chr(10) & "Failed"
+        CompSheet.Cells(compSheetPos, 10).Value = "Ion Ratio" & Chr(10) & "Criteria"
+        CompSheet.Range("A1:I1").HorizontalAlignment = xlCenter
         
         Set HeaderRangeNeat = NeatSheet.Range(NeatSheet.Cells(headerneat, StartColumnNeat), NeatSheet.Cells(headerneat, Columns.Count).End(xlToLeft))
         Set HeaderRangeSpike = SpikeSheet.Range(SpikeSheet.Cells(headerspike, StartColumnSpike), SpikeSheet.Cells(headerspike, Columns.Count).End(xlToLeft))
         Set ControlRange = NeatSheet.Range(NeatSheet.Cells(headerneat, 3), NeatSheet.Cells(headerneat + injectionsneat, 3))
         For Each Cell In HeaderRangeNeat
             If Cell.Value = "ID" Then
-                IDRow = CInt(Cell.Column)
+                IDColumn = CInt(Cell.Column)
             End If
         
             If Cell.Value Like "*Std*" And Cell.Value Like "*Conc*" Then
-                StdConcRow = CInt(Cell.Column)
+                StdConcColumn = CInt(Cell.Column)
             End If
         
             If Cell.Value = "RT" Then
-                RTRow = CInt(Cell.Column)
+                RTColumn = CInt(Cell.Column)
             End If
         
             If Cell.Value Like "*Pred*" And Cell.Value Like "*RT*" Then
-                PredRTRow = CInt(Cell.Column)
+                PredRTColumn = CInt(Cell.Column)
             End If
         
             If Cell.Value = "Area" Then
-                AreaRow = CInt(Cell.Column)
+                AreaColumnNeat = CInt(Cell.Column)
             End If
         
             If Cell.Value Like "*Ratio*" And Cell.Value Like "*Flag*" Then
-                RFRow = CInt(Cell.Column)
+                RFColumn = CInt(Cell.Column)
             End If
         
             If Cell.Value = "Type" Then
-                TypeRow = CInt(Cell.Column)
+                TypeColumn = CInt(Cell.Column)
             End If
         Next
+        
         
         For Each Cell In HeaderRangeSpike
             If Cell.Value = "Area" Then
-                AreaRowSpike = CInt(Cell.Column)
+                AreaColumnSpike = CInt(Cell.Column)
+            End If
+            If Cell.Value Like "*Pred*" And Cell.Value Like "*RT*" Then
+                PredRTColumnSpike = CInt(Cell.Column)
             End If
         Next
+        
+        AvgRTValue = (NeatSheet.Cells(headerneat + 1, PredRTColumn).Value + SpikeSheet.Cells(headerspike + 1, PredRTColumnSpike).Value) / 2
+        CompSheet.Cells(1, 7).Value = "Average RT = " & CStr(AvgRTValue) & " min"
     
         For Each Cell In HeaderRangeNeat
             If Cell.Value = "Type" Then
-                j = 1
+                j = compSheetPos + 1
                 kal = 0
                 For i = 1 To injectionsneat
                     If NeatSheet.Cells(headerneat + i, CInt(Cell.Column)).Value = "Standard" Or NeatSheet.Cells(headerneat + i, CInt(Cell.Column)).Value = "QC" Then
-                        NeatArea = NeatSheet.Cells(headerneat + i, AreaRow).Value
-                        SpikeArea = SpikeSheet.Cells(headerspike + i, AreaRowSpike).Value
-                        CompSheet.Cells(j + 1, 1).Value = NeatSheet.Cells(headerneat + i, IDRow).Value
-                        CompSheet.Cells(j + 1, 2).Value = NeatArea / (SpikeArea - NeatArea)
-                        CompSheet.Cells(j + 1, 9).Value = NeatSheet.Cells(headerneat + i, RFRow).Value
+                        NeatArea = NeatSheet.Cells(headerneat + i, AreaColumnNeat).Value
+                        SpikeArea = SpikeSheet.Cells(headerspike + i, AreaColumnSpike).Value
+                        CompSheet.Cells(j, 1).Value = NeatSheet.Cells(headerneat + i, IDColumn).Value
+                        CompSheet.Cells(j, 2).Value = NeatArea / (SpikeArea - NeatArea)
+                        CompSheet.Cells(j, 9).Value = NeatSheet.Cells(headerneat + i, RFColumn).Value & Chr(10) & ""
                         j = j + 1
                     End If
                     If NeatSheet.Cells(headerneat + i, CInt(Cell.Column)).Value = "Standard" Then
                     m = m + 1
                     kal = kal + 1
-                    MetaDataSh.Cells(m, 6).Value = NeatSheet.Cells(headerneat + i, StdConcRow).Value
+                    MetaDataSh.Cells(m, 6).Value = NeatSheet.Cells(headerneat + i, StdConcColumn).Value
                     End If
                 Next
+                LastContCell = j - 1
                 m = 1
-                j = 1
-                CalExecutor kal, compName, kal
+                j = compSheetPos + 1
+                CalExecutor kal, compName, compSheetPos, LastContCell
                 For i = 1 To injectionsneat
                     If NeatSheet.Cells(headerneat + i, CInt(Cell.Column)).Value = "Standard" Or NeatSheet.Cells(headerneat + i, CInt(Cell.Column)).Value = "QC" Then
-                        CompSheet.Cells(j + 1, 3).Value = (CompSheet.Cells(j + 1, 2).Value - CompSheet.Range("K2")) / (CompSheet.Range("J2"))
+                        ConcValue = (CompSheet.Cells(j, 2).Value - CompSheet.Range("L2")) / (CompSheet.Range("K2"))
+                        CompSheet.Cells(j, 3).Value = ConcValue
+                        StdConcValue = NeatSheet.Cells(headerneat + i, StdConcColumn).Value
+                        CompSheet.Cells(j, 4).Value = CStr(StdConcValue - StdConcValue * 0.2) & " - " & CStr(StdConcValue + StdConcValue * 0.2)
+                        If CompSheet.Cells(j, 3).Value > StdConcValue - StdConcValue * 0.2 And CompSheet.Cells(j, 3).Value < StdConcValue + StdConcValue * 0.2 Then
+                            CompSheet.Cells(j, 5).Value = "PASS"
+                            CompSheet.Cells(j, 5).Font.Bold = True
+                            CompSheet.Cells(j, 5).Font.Color = RGB(Red:=2, Green:=147, Blue:=70)
+                        Else
+                            CompSheet.Cells(j, 5).Value = "FAIL"
+                            CompSheet.Cells(j, 5).Font.Bold = True
+                            CompSheet.Cells(j, 5).Font.Color = RGB(Red:=195, Green:=0, Blue:=4)
+                        End If
                         j = j + 1
                     End If
                 Next
             End If
         Next
+        CompSheet.Range("A1").EntireColumn.AutoFit
+        CompSheet.Range("D1").EntireColumn.AutoFit
+        ColIndex = 11
+        With CompSheet.Range("A2:O" & CStr(LastContCell))
+            .VerticalAlignment = xlTop
+            .HorizontalAlignment = xlCenter
+            With .Borders(xlInsideHorizontal)
+                .LineStyle = xlContinuous
+                .Weight = xlThin
+                .ColorIndex = ColIndex
+            End With
+            With .Borders(xlEdgeTop)
+                .LineStyle = xlContinuous
+                .Weight = xlThick
+                .ColorIndex = ColIndex
+            End With
+            With .Borders(xlEdgeBottom)
+                .LineStyle = xlContinuous
+                .Weight = xlThick
+                .ColorIndex = ColIndex
+            End With
+            With .Borders(xlEdgeLeft)
+                .LineStyle = xlContinuous
+                .Weight = xlThick
+                .ColorIndex = ColIndex
+            End With
+            With .Borders(xlEdgeRight)
+                .LineStyle = xlContinuous
+                .Weight = xlThick
+                .ColorIndex = ColIndex
+            End With
+        End With
     Next
+
 End Sub
-Private Sub CalExecutor(ByVal CompInt As Integer, ByVal compName As String, kal As Integer)
-    Dim MetaDataSh As Worksheet, CompSheet As Worksheet, Chrt As Chart, yL As Range, xL As Range
+Private Sub CalExecutor(ByVal CompInt As Integer, ByVal compName As String, ByVal compSheetPos As Integer, ByVal LastContCell As Integer)
+    Dim MetaDataSh As Worksheet, CompSheet As Worksheet, Chrt As Chart, yL As Range, xL As Range, LastCal As String
+    LastCal = CStr(CompInt + compSheetPos)
     Set CompSheet = ThisWorkbook.Sheets(compName)
     Set MetaDataSh = ThisWorkbook.Sheets("MetaData")
     Set Chrt = CompSheet.Shapes.AddChart2.Chart
-    Set yL = CompSheet.Range("$B$2:$B$7")
-    Set xL = MetaDataSh.Range("$F$2:$F$7")
+    Set yL = CompSheet.Range("$B$" & CStr(compSheetPos + 1) & ":$B$" & LastCal)
+    Set xL = MetaDataSh.Range("$F$" & CStr(compSheetPos) & ":$F$" & CStr(CInt(LastCal) - 1))
     SlopeValue = Application.WorksheetFunction.Slope(yL, xL)
     InterceptValue = Application.WorksheetFunction.Intercept(yL, xL)
-    Dim LastCal As String
-    LastCal = CStr(kal + 1)
     With Chrt
         Do While .SeriesCollection.Count > 0
             .SeriesCollection(1).Delete
@@ -297,15 +359,15 @@ Private Sub CalExecutor(ByVal CompInt As Integer, ByVal compName As String, kal 
         .ChartType = xlXYScatter
         .SeriesCollection.NewSeries
         With .Parent
-            .Left = CompSheet.Range("J1").Left
-            .Top = CompSheet.Range("J1").Top
-            .Height = CompSheet.Range("J1:J20").Height
-            .Width = CompSheet.Range("J1:N1").Width
+            .Left = CompSheet.Range("K2").Left
+            .Top = CompSheet.Range("K2").Top
+            .Height = CompSheet.Range("K2:K" & CStr(LastContCell)).Height
+            .Width = CompSheet.Range("K2:O2").Width
         End With
         With .SeriesCollection(1)
             .Name = "Calibrationcurve: " & compName
-            .Values = "='" & compName & "'!$B$2:$B$" & LastCal
-            .XValues = "='MetaData'!$F$2:$F$" & LastCal
+            .Values = "='" & compName & "'!$B$" & CStr(compSheetPos + 1) & ":$B$" & LastCal
+            .XValues = "='MetaData'!$F$" & CStr(compSheetPos) & ":$F$" & CStr(CInt(LastCal) - 1)
             .Trendlines.Add
             .Trendlines(1).DisplayEquation = True
             .Trendlines(1).DisplayRSquared = True
@@ -322,10 +384,8 @@ Private Sub CalExecutor(ByVal CompInt As Integer, ByVal compName As String, kal 
         .Axes(xlValue).HasMinorGridlines = True
         .HasLegend = False
     End With
-    CompSheet.Range("J1").Value = "Slope"
-    CompSheet.Range("J2").Value = SlopeValue
-    CompSheet.Range("K1").Value = "Intercept"
-    CompSheet.Range("K2").Value = InterceptValue
+    CompSheet.Range("K2").Value = SlopeValue
+    CompSheet.Range("L2").Value = InterceptValue
     
 End Sub
 Private Sub Worksheet_Change(ByVal Target As Range)
