@@ -1,9 +1,30 @@
-Private Sub CommandButton1_Click()
-    Worksheet_Change (Cells(1, 3))
+Private Sub EvaluateButton_Click()
+    Worksheet_Change (Cells(1, 1))
     Dim neat As Integer, spike As Integer, c As Integer
     Dim StartRowNeat As Integer, StartColumnNeat As Integer, CompCtrl As Integer, CompColumn As Integer, NeatRange As Range, SpikeRange As Range
     Dim StartRowSpike As Integer, StartColumnSpike As Integer, SpikeSheet As Worksheet, NeatSheet As Worksheet
+    Dim strSheetName As String, bln As Boolean, CtrlWSh As Worksheet
     Dim controlMap As Integer
+    
+    'Kollar om bladet MetaData existerar.
+    strSheetName = Trim("MetaData")
+    On Error Resume Next
+    Set CtrlWSh = ThisWorkbook.Worksheets(strSheetName)
+    On Error Resume Next
+    If Not CtrlWSh Is Nothing Then
+        bln = True
+    Else
+        bln = False
+        Err.Clear
+    End If
+    
+    'Om bladet MetaData inte existerar, skapa det.
+    If bln = False Then
+        Sheets.Add After:=Sheets(Sheets.Count)
+        Sheets(Sheets.Count).Name = "MetaData"
+    End If
+    
+    ' Sätt upp Neat och Spike bladen
     Set NeatSheet = ThisWorkbook.Sheets("Neat")
     Set SpikeSheet = ThisWorkbook.Sheets("Spike")
     Set NeatRange = ThisWorkbook.Sheets("Neat").Range("A1:AZ500")
@@ -28,6 +49,7 @@ Private Sub CommandButton1_Click()
             Exit For
         End If
     Next
+    'Kontroll att värden finns
     If StartRowSpike = 0 Then
         MsgBox "Det verkar inte finnas någon CompleteSummary inklistrat i Spike-bladet! Kopiera från TargetLynx"
         Exit Sub
@@ -38,11 +60,13 @@ Private Sub CommandButton1_Click()
     CreateCompoundSheets
     neat = CheckNeatIndex(ByVal StartRowNeat, ByVal StartColumnNeat)
     spike = CheckSpikeIndex(ByVal StartRowSpike, ByVal StartColumnSpike)
+    ' Kontroll att antalet rader överensstämmer mellan Neat och Spike
     If Not neat = spike Then
         MsgBox "Antalet injektioner för neat och spike överensstämmer inte! Processa om från MassLynx till TargetLynx och klistra in igen."
         Exit Sub
     End If
     controlMap = TransferControlRange(ByVal compInt, ByVal StartRowNeat, ByVal StartColumnNeat, ByVal StartRowSpike, ByVal StartColumnSpike)
+    'Kontroll att varje enskild SampleID översensstämmer mellan Neat och Spike
     If controlMap = 0 Then
         MsgBox "Beräkningen lyckades! Använd respektive substansflik för att utvärdera resulatet."
     Else
@@ -52,6 +76,7 @@ Private Sub CommandButton1_Click()
 End Sub
 Private Sub MetaDataLayout(ByVal compInt)
     Dim MetaDataRange As Range, MetaDataSh As Worksheet
+    
     Set MetaDataRange = ThisWorkbook.Sheets("MetaData").Range("A1:F" & CStr(compInt + 1))
     Set MetaDataSh = ThisWorkbook.Sheets("MetaData")
     MetaDataSh.Cells(1, 1).Value = "Compound"
@@ -94,31 +119,12 @@ End Sub
 Private Function LoopRowsStoreNeat(ByVal StartRow As Integer, ByVal StartColumn As Integer) As Integer
 'Går igenom rad för rad samtliga substanser i CompleteSummary och lagrar metadata för Neat i fliken MetaData för att använda som referensvärden
     Dim j As Integer, CompRange As Range, Cell As Range, MetaDataSh As Worksheet, NeatSheet As Worksheet, CtrlWSh As Worksheet
-    Dim strSheetName As String, bln As Boolean
     Dim yourString, subString, replacementString, newString As String
 
     'Definerar området med substansinformation
     Set NeatSheet = ThisWorkbook.Sheets("Neat")
     Set CompRange = NeatSheet.Range(NeatSheet.Cells(StartRow, StartColumn), NeatSheet.Cells(Rows.Count, StartColumn).End(xlUp))
-
-    'Kollar om bladet MetaData existerar.
-    strSheetName = Trim("MetaData")
-    On Error Resume Next
-    Set CtrlWSh = ThisWorkbook.Worksheets(strSheetName)
-    On Error Resume Next
-    If Not CtrlWSh Is Nothing Then
-        bln = True
-    Else
-        bln = False
-        Err.Clear
-    End If
-
-    'Om bladet MetaData inte existerar, skapa det.
-    If bln = False Then
-        Sheets.Add After:=Sheets(Sheets.Count)
-        Sheets(Sheets.Count).Name = "MetaData"
-    End If
-
+    
     'Fyll x första cellerna med Compound strängar i MetaData
     Set MetaDataSh = ThisWorkbook.Sheets("MetaData")
     j = 1
@@ -151,11 +157,11 @@ Private Sub LoopRowsStoreSpike(ByVal StartRow As Integer, ByVal StartColumn As I
 'Lagrar metadata för Spike i bladet MetaData
     Dim j As Integer, CompRange As Range, Cell As Range, MetaDataSh As Worksheet, SpikeSheat As Worksheet
     Dim strSheetName As String, CtrlWSh As Worksheet, bln As Boolean
-
+    
     'Definerar området med substansinformation
     Set SpikeSheat = ThisWorkbook.Sheets("Spike")
     Set CompRange = SpikeSheat.Range(SpikeSheat.Cells(StartRow, StartColumn), SpikeSheat.Cells(Rows.Count, StartColumn).End(xlUp))
-
+    
     'Fyller x första cellerna med Compound-strängar i MetaData
     Set MetaDataSh = ThisWorkbook.Sheets("MetaData")
     j = 1
@@ -173,7 +179,7 @@ Private Sub CreateCompoundSheets()
     Dim strSheetName As String, CtrlWSh As Worksheet, bln As Boolean
     Set MetaDataSh = ThisWorkbook.Sheets("MetaData")
     Set CompRange = MetaDataSh.Range(MetaDataSh.Cells(2, 1), MetaDataSh.Cells(Rows.Count, "A").End(xlUp))
-
+    
     For Each Cell In CompRange
         'Bekräfta att bladen från MetaData inte redan existerar.
         strSheetName = Trim(Cell.Value)
@@ -186,7 +192,7 @@ Private Sub CreateCompoundSheets()
             bln = False
             Err.Clear
         End If
-
+        
         If bln = False Then
             Sheets.Add After:=Sheets(Sheets.Count)
             Sheets(Sheets.Count).Name = Cell
@@ -264,7 +270,7 @@ Private Function TransferControlRange(ByVal compInt As Integer, ByVal StartRowNe
         CompSheet.Cells(compSheetPos, 9).Value = "Ion Ratio" & Chr(10) & "Failed"
         CompSheet.Cells(compSheetPos, 10).Value = "Ion Ratio" & Chr(10) & "Criteria"
         CompSheet.Range("A1:I1").HorizontalAlignment = xlCenter
-
+        
         Set HeaderRangeNeat = NeatSheet.Range(NeatSheet.Cells(headerneat, StartColumnNeat), NeatSheet.Cells(headerneat, Columns.Count).End(xlToLeft))
         Set HeaderRangeSpike = SpikeSheet.Range(SpikeSheet.Cells(headerspike, StartColumnSpike), SpikeSheet.Cells(headerspike, Columns.Count).End(xlToLeft))
         Set ControlRange = NeatSheet.Range(NeatSheet.Cells(headerneat, 3), NeatSheet.Cells(headerneat + injectionsneat, 3))
@@ -272,32 +278,32 @@ Private Function TransferControlRange(ByVal compInt As Integer, ByVal StartRowNe
             If Cell.Value = "ID" Then
                 IDColumn = CInt(Cell.Column)
             End If
-
+        
             If Cell.Value Like "*Std*" And Cell.Value Like "*Conc*" Then
                 StdConcColumn = CInt(Cell.Column)
             End If
-
+        
             If Cell.Value = "RT" Then
                 RTColumn = CInt(Cell.Column)
             End If
-
+        
             If Cell.Value Like "*Pred*" And Cell.Value Like "*RT*" Then
                 PredRTColumn = CInt(Cell.Column)
             End If
-
+        
             If Cell.Value = "Area" Then
                 AreaColumnNeat = CInt(Cell.Column)
             End If
-
+        
             If Cell.Value Like "*Ratio*" And Cell.Value Like "*Flag*" Then
                 RFColumn = CInt(Cell.Column)
             End If
-
+        
             If Cell.Value = "Type" Then
                 TypeColumn = CInt(Cell.Column)
             End If
         Next
-
+        
         For Each Cell In HeaderRangeSpike
             If Cell.Value = "Area" Then
                 AreaColumnSpike = CInt(Cell.Column)
@@ -312,15 +318,15 @@ Private Function TransferControlRange(ByVal compInt As Integer, ByVal StartRowNe
                 RFColumnSpike = CInt(Cell.Column)
             End If
         Next
-
+        
         AvgRTValue = (NeatSheet.Cells(headerneat + 1, PredRTColumn).Value + SpikeSheet.Cells(headerspike + 1, PredRTColumnSpike).Value) / 2
         CompSheet.Cells(1, 7).Value = "Average RT = " & CStr(AvgRTValue) & " min"
-
+        
         For Each Cell In HeaderRangeNeat
             If Cell.Value = "Type" Then
                 j = compSheetPos + 1
                 kal = 0
-
+                
                 For i = 1 To injectionsneat
                     'TAC-Ratio för QC och Standard
                     If NeatSheet.Cells(headerneat + i, CInt(Cell.Column)).Value = "Standard" Or NeatSheet.Cells(headerneat + i, CInt(Cell.Column)).Value = "QC" Then
@@ -332,7 +338,7 @@ Private Function TransferControlRange(ByVal compInt As Integer, ByVal StartRowNe
                             TransferControlRange = 1
                             Exit Function
                         End If
-
+                        
                         CompSheet.Cells(j, 2).Value = NeatArea / (SpikeArea - NeatArea)
                         CompSheet.Cells(j, 9).Value = NeatSheet.Cells(headerneat + i, RFColumn).Value & Chr(10) & ""
                         j = j + 1
@@ -347,10 +353,10 @@ Private Function TransferControlRange(ByVal compInt As Integer, ByVal StartRowNe
                 a = LastContCell + 4
                 m = 1
                 j = compSheetPos + 1
-
+                
                 'Kalibrera och skapa kontrolldata
                 CalExecutor kal, compName, compSheetPos, LastContCell
-
+                
                 'Överför QC och Standard
                 For i = 1 To injectionsneat
                     If NeatSheet.Cells(headerneat + i, CInt(Cell.Column)).Value = "Standard" Or NeatSheet.Cells(headerneat + i, CInt(Cell.Column)).Value = "QC" Then
@@ -379,7 +385,7 @@ Private Function TransferControlRange(ByVal compInt As Integer, ByVal StartRowNe
                         j = j + 1
                     End If
                 Next
-
+                
                 'Överför Analyte
                 CompSheet.Cells(a - 1, 1).Value = "Sample"
                 CompSheet.Cells(a - 1, 2).Value = "TAC"
@@ -425,7 +431,7 @@ Private Function TransferControlRange(ByVal compInt As Integer, ByVal StartRowNe
                 Next
             End If
         Next
-
+        
         CompSheet.Range("A1").EntireColumn.AutoFit
         CompSheet.Range("D1").EntireColumn.AutoFit
         ColIndex = 11
@@ -458,7 +464,7 @@ Private Function TransferControlRange(ByVal compInt As Integer, ByVal StartRowNe
                 .ColorIndex = ColIndex
             End With
         End With
-
+        
         With CompSheet.Range("A2:O" & CStr(LastContCell))
             .VerticalAlignment = xlTop
             .HorizontalAlignment = xlCenter
@@ -535,10 +541,13 @@ Private Sub CalExecutor(ByVal compInt As Integer, ByVal compName As String, ByVa
     End With
     CompSheet.Range("K2").Value = SlopeValue
     CompSheet.Range("L2").Value = InterceptValue
-
+    
 End Sub
 Private Sub Worksheet_Change(ByVal Target As Range)
-    If Target.Address <> "$A$4" Then Exit Sub
+Dim FirstSheet As Worksheet
+Set FirstSheet = ThisWorkbook.Sheets("Utvärderingsprogram uTAC-Bens")
+'Synkroniserar Sheet1s namn med cell Target
+    If Target.Address <> "$A$1" Then Exit Sub
     If IsEmpty(Target) Then Exit Sub
     If Len(Target.Value) > 31 Then
         Application.EnableEvents = False
@@ -546,7 +555,7 @@ Private Sub Worksheet_Change(ByVal Target As Range)
         Application.EnableEvents = True
         Exit Sub
     End If
-
+    FirstSheet.Cells(1, 1).Value = "Utvärderingsprogram uTAC-Bens"
     Dim IllegalCharacter(1 To 7) As String, i As Integer
     IllegalCharacter(1) = "/"
     IllegalCharacter(2) = "\"
